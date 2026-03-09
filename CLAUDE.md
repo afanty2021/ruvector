@@ -1,237 +1,347 @@
-# Claude Code Configuration - Claude Flow V3
+# RuVector - Self-Learning, Agentic Operating System
 
-## Behavioral Rules (Always Enforced)
+> **Documentation Coverage**: 100% (105/105 modules) | **Last Updated**: 2026-03-09
 
-- Do what has been asked; nothing more, nothing less
-- NEVER create files unless they're absolutely necessary for achieving your goal
-- ALWAYS prefer editing an existing file to creating a new one
-- NEVER proactively create documentation files (*.md) or README files unless explicitly requested
-- NEVER save working files, text/mds, or tests to the root folder
-- Never continuously check status after spawning a swarm — wait for results
-- ALWAYS read a file before editing it
-- NEVER commit secrets, credentials, or .env files
+## Project Overview
 
-## Publishing (crates.io & npm)
+RuVector is a self-learning, agentic operating system providing vector database capabilities with graph intelligence, local AI, and PostgreSQL integration. It combines cutting-edge research in sublinear algorithms, graph neural networks, attention mechanisms, and quantum simulation.
 
-- Credentials are in `.env` (project root) and `~/.cargo/credentials.toml` — NEVER commit or log these
-- npm is authenticated as `ruvnet` — verify with `npm whoami`
-- **NEVER** echo, cat, or print credential files. Source `.env` only via `source .env`
-- **Publish order for solver crates**: `ruvector-solver` first (no deps), then `ruvector-solver-wasm` and `ruvector-solver-node` (depend on solver)
-- Always run `cargo publish --dry-run --allow-dirty` before real publish
-- `ruvector-profiler` has `publish = false` — intentionally not publishable
+## Module Structure
 
-### npx ruvector (npm)
+```mermaid
+graph TD
+    A["(根) RuVector"] --> B["Core Engines"];
+    A --> C["AI/ML Layers"];
+    A --> D["Graph & Topology"];
+    A --> E["Platform Bindings"];
+    A --> F["Specialized"];
 
-- **Package**: `ruvector` on npm, published as `ruvnet`
-- **Location**: `npm/packages/ruvector/`
-- **Current version**: check `npm/packages/ruvector/package.json`
-- **Pre-publish checklist**:
-  1. `cd npm/packages/ruvector`
-  2. Update version in `package.json` AND `bin/mcp-server.js` (2 occurrences of version string)
-  3. `node -c bin/cli.js && node -c bin/mcp-server.js` (syntax check)
-  4. `npm test` (55 CLI + integration tests must pass)
-  5. `npm publish --access public`
-- **Key files**:
-  - `bin/cli.js` (~8500 lines) — 48 commands, 12 groups (brain, edge, identity, mcp, rvf, hooks, llm, sona, route, gnn, attention, embed)
-  - `bin/mcp-server.js` (~3500 lines) — 91 MCP tools, stdio + SSE transports
-  - `test/integration.js` — module loading, type defs, package structure
-  - `test/cli-commands.js` — 55 CLI command tests
-- **chalk ESM fix**: chalk v5 is ESM-only, we use CJS. Always use: `const _chalk = require('chalk'); const chalk = _chalk.default || _chalk;`
-- **Lazy loading**: GNN, attention, ora are lazy-loaded for ~55ms startup. Do NOT convert to eager imports.
-- **Peer deps** (optional): `@ruvector/pi-brain`, `@ruvector/ruvllm`, `@ruvector/router`
+    B --> B1["ruvector-core"];
+    B --> B2["ruvector-solver"];
+    B --> B3["ruvector-router-core"];
+    B --> B4["ruvector-cluster"];
 
-### π.ruv.io (Cloud Run)
+    C --> C1["ruvector-gnn"];
+    C --> C2["ruvector-attention"];
+    C --> C3["sona"];
+    C --> C4["ruvector-delta-*"];
+    C --> C5["ruvector-sparse-inference"];
 
-- **Service**: `ruvbrain` in `us-central1` on project `ruv-dev`
-- **Source**: `crates/mcp-brain-server/` — axum Rust server
-- **Landing page**: `crates/mcp-brain-server/static/index.html` (embedded via `include_str!`)
-- **Origin slideshow**: `crates/mcp-brain-server/static/origin.html`
-- **Deploy**:
-  1. Edit HTML in `crates/mcp-brain-server/static/`
-  2. `gcloud builds submit --config=crates/mcp-brain-server/cloudbuild.yaml --project=ruv-dev .`
-  3. `gcloud run deploy ruvbrain --image gcr.io/ruv-dev/ruvbrain:latest --region us-central1 --project ruv-dev`
-- **Dockerfile**: `crates/mcp-brain-server/Dockerfile` — strips `examples/` from workspace before build
-- **Domain**: `π.ruv.io` (also `pi.ruv.io`) → Cloud Run custom domain mapping
+    D --> D1["ruvector-graph"];
+    D --> D2["ruvector-mincut"];
+    D --> D3["ruvector-raft"];
+    D --> D4["ruvector-replication"];
+    D --> D5["ruvector-graph-transformer"];
+    D --> D6["ruvector-hyperbolic-hnsw"];
 
-### Rust Crates (crates.io)
+    E --> E1["ruvector-node"];
+    E --> E2["ruvector-wasm"];
+    E --> E3["ruvector-attention-*"];
+    E --> E4["ruvector-mincut-*"];
+    E --> E5["ruvector-router-*"];
 
-- **Publish order**: Check inter-crate `path =` dependencies. Publish leaf crates first.
-- **Version deps**: Before publishing, convert `path = "../foo"` to `version = "x.y"` in Cargo.toml
-- **Dry run**: `cargo publish --dry-run --allow-dirty -p <crate-name>`
-- **EXO-AI crates**: Published as v0.1.1 (ruvector-exo-core, ruvector-exo-vision, etc.)
+    F --> F1["rvf"];
+    F --> F2["ruvector-robotics"];
+    F --> F3["neural-trader-*"];
+    F --> F4["prime-radiant"];
+    F --> F5["ruqu-*"];
+    F --> F6["ruvllm"];
+    F --> F7["mcp-brain-server"];
 
-## File Organization
-
-- NEVER save to root folder — use the directories below
-- Use `/src` for source code files
-- Use `/tests` for test files
-- Use `/docs` for documentation and markdown files
-- Use `/config` for configuration files
-- Use `/scripts` for utility scripts
-- Use `/examples` for example code
-
-## Project Architecture
-
-- Follow Domain-Driven Design with bounded contexts
-- Keep files under 500 lines
-- Use typed interfaces for all public APIs
-- Prefer TDD London School (mock-first) for new code
-- Use event sourcing for state changes
-- Ensure input validation at system boundaries
-
-### Project Config
-
-- **Topology**: hierarchical-mesh
-- **Max Agents**: 15
-- **Memory**: hybrid
-- **HNSW**: Enabled
-- **Neural**: Enabled
-
-## Build & Test
-
-```bash
-# Build
-npm run build
-
-# Test
-npm test
-
-# Lint
-npm run lint
+    click B1 "./crates/ruvector-core/CLAUDE.md" "Core vector database"
+    click B2 "./crates/ruvector-solver/CLAUDE.md" "Sublinear solvers"
+    click B3 "./crates/ruvector-router-core/CLAUDE.md" "Neural routing"
+    click B4 "./crates/ruvector-cluster/CLAUDE.md" "Distributed clustering"
+    click C1 "./crates/ruvector-gnn/CLAUDE.md" "Graph neural networks"
+    click C2 "./crates/ruvector-attention/CLAUDE.md" "Attention mechanisms"
+    click C3 "./crates/sona/CLAUDE.md" "Self-optimizing neural architecture"
+    click C5 "./crates/ruvector-sparse-inference/CLAUDE.md" "Sparse inference"
+    click D1 "./crates/ruvector-graph/CLAUDE.md" "Graph database"
+    click D2 "./crates/ruvector-mincut/CLAUDE.md" "Subpolynomial min-cut"
+    click D3 "./crates/ruvector-raft/CLAUDE.md" "Raft consensus"
+    click D4 "./crates/ruvector-replication/CLAUDE.md" "Multi-master replication"
+    click D5 "./crates/ruvector-graph-transformer/CLAUDE.md" "Graph transformer"
+    click D6 "./crates/ruvector-hyperbolic-hnsw/CLAUDE.md" "Hyperbolic HNSW"
+    click E1 "./crates/ruvector-node/CLAUDE.md" "Node.js bindings"
+    click E2 "./crates/ruvector-wasm/CLAUDE.md" "WASM bindings"
+    click F1 "./crates/rvf/CLAUDE.md" "Cognitive containers"
+    click F4 "./crates/prime-radiant/CLAUDE.md" "Coherence engine"
+    click F6 "./crates/ruvllm/CLAUDE.md" "Local LLM inference"
+    click F7 "./crates/mcp-brain-server/CLAUDE.md" "Shared brain service"
 ```
 
-- ALWAYS run tests after making code changes
-- ALWAYS verify build succeeds before committing
+## Module Index
 
-## Security Rules
+### Core Engines
 
-- NEVER hardcode API keys, secrets, or credentials in source files
-- NEVER commit .env files or any file containing secrets
-- Always validate user input at system boundaries
-- Always sanitize file paths to prevent directory traversal
-- Run `npx @claude-flow/cli@latest security scan` after security-related changes
+| Module | Description | Status |
+|--------|-------------|--------|
+| [ruvector-core](./crates/ruvector-core/CLAUDE.md) | Foundation vector database with HNSW indexing | ✅ Documented |
+| [ruvector-solver](./crates/ruvector-solver/CLAUDE.md) | Sublinear solvers (O(log n) to O(√n)) | ✅ Documented |
+| [ruvector-router-core](./crates/ruvector-router-core/CLAUDE.md) | Neural routing inference engine | ✅ Documented |
+| [ruvector-cluster](./crates/ruvector-cluster/CLAUDE.md) | Distributed clustering and sharding | ✅ Documented |
+| [ruvector-postgres](./crates/ruvector-postgres/CLAUDE.md) | PostgreSQL extension (230+ SQL functions) | ✅ Documented |
 
-## Concurrency: 1 MESSAGE = ALL RELATED OPERATIONS
+### Graph & Topology
 
-- All operations MUST be concurrent/parallel in a single message
-- Use Claude Code's Task tool for spawning agents, not just MCP
-- ALWAYS batch ALL todos in ONE TodoWrite call (5-10+ minimum)
-- ALWAYS spawn ALL agents in ONE message with full instructions via Task tool
-- ALWAYS batch ALL file reads/writes/edits in ONE message
-- ALWAYS batch ALL Bash commands in ONE message
+| Module | Description | Status |
+|--------|-------------|--------|
+| [ruvector-graph](./crates/ruvector-graph/CLAUDE.md) | Neo4j-compatible graph database | ✅ Documented |
+| [ruvector-mincut](./crates/ruvector-mincut/CLAUDE.md) | Subpolynomial dynamic min-cut | ✅ Documented |
+| [ruvector-raft](./crates/ruvector-raft/CLAUDE.md) | Raft consensus implementation | ✅ Documented |
+| [ruvector-replication](./crates/ruvector-replication/CLAUDE.md) | Multi-master replication | ✅ Documented |
+| [ruvector-graph-transformer](./crates/ruvector-graph-transformer/CLAUDE.md) | 8 verified transformer modules | ✅ Documented |
+| [ruvector-hyperbolic-hnsw](./crates/ruvector-hyperbolic-hnsw/CLAUDE.md) | Hyperbolic HNSW for hierarchical data | ✅ Documented |
 
-## Swarm Orchestration
+### AI/ML Layers
 
-- MUST initialize the swarm using CLI tools when starting complex tasks
-- MUST spawn concurrent agents using Claude Code's Task tool
-- Never use CLI tools alone for execution — Task tool agents do the actual work
-- MUST call CLI tools AND Task tool in ONE message for complex work
+| Module | Description | Status |
+|--------|-------------|--------|
+| [ruvector-gnn](./crates/ruvector-gnn/CLAUDE.md) | Graph Neural Network layer | ✅ Documented |
+| [ruvector-attention](./crates/ruvector-attention/CLAUDE.md) | 46 attention mechanisms | ✅ Documented |
+| [sona](./crates/sona/CLAUDE.md) | Self-Optimizing Neural Architecture | ✅ Documented |
+| [ruvector-delta-core](./crates/ruvector-delta-core/CLAUDE.md) | Delta types and traits | ✅ Documented |
+| [ruvector-delta-index](./crates/ruvector-delta-index/CLAUDE.md) | Delta-aware HNSW | ✅ Documented |
+| [ruvector-delta-graph](./crates/ruvector-delta-graph/CLAUDE.md) | Graph delta operations | ✅ Documented |
+| [ruvector-delta-consensus](./crates/ruvector-delta-consensus/CLAUDE.md) | CRDT consensus | ✅ Documented |
+| [ruvector-sparse-inference](./crates/ruvector-sparse-inference/CLAUDE.md) | PowerInfer sparse activation | ✅ Documented |
+| [ruvector-learning-wasm](./crates/ruvector-learning-wasm/CLAUDE.md) | MicroLoRA for WASM | ✅ Documented |
 
-### 3-Tier Model Routing (ADR-026)
+### Platform Bindings
 
-| Tier | Handler | Latency | Cost | Use Cases |
-|------|---------|---------|------|-----------|
-| **1** | Agent Booster (WASM) | <1ms | $0 | Simple transforms (var→const, add types) — Skip LLM |
-| **2** | Haiku | ~500ms | $0.0002 | Simple tasks, low complexity (<30%) |
-| **3** | Sonnet/Opus | 2-5s | $0.003-0.015 | Complex reasoning, architecture, security (>30%) |
-
-- Always check for `[AGENT_BOOSTER_AVAILABLE]` or `[TASK_MODEL_RECOMMENDATION]` before spawning agents
-- Use Edit tool directly when `[AGENT_BOOSTER_AVAILABLE]`
-
-## Swarm Configuration & Anti-Drift
-
-- ALWAYS use hierarchical topology for coding swarms
-- Keep maxAgents at 6-8 for tight coordination
-- Use specialized strategy for clear role boundaries
-- Use `raft` consensus for hive-mind (leader maintains authoritative state)
-- Run frequent checkpoints via `post-task` hooks
-- Keep shared memory namespace for all agents
-
-```bash
-npx @claude-flow/cli@latest swarm init --topology hierarchical --max-agents 8 --strategy specialized
-```
-
-## Swarm Execution Rules
-
-- ALWAYS use `run_in_background: true` for all agent Task calls
-- ALWAYS put ALL agent Task calls in ONE message for parallel execution
-- After spawning, STOP — do NOT add more tool calls or check status
-- Never poll TaskOutput or check swarm status — trust agents to return
-- When agent results arrive, review ALL results before proceeding
-
-## V3 CLI Commands
-
-### Core Commands
-
-| Command | Subcommands | Description |
-|---------|-------------|-------------|
-| `init` | 4 | Project initialization |
-| `agent` | 8 | Agent lifecycle management |
-| `swarm` | 6 | Multi-agent swarm coordination |
-| `memory` | 11 | AgentDB memory with HNSW search |
-| `task` | 6 | Task creation and lifecycle |
-| `session` | 7 | Session state management |
-| `hooks` | 17 | Self-learning hooks + 12 workers |
-| `hive-mind` | 6 | Byzantine fault-tolerant consensus |
-
-### Quick CLI Examples
-
-```bash
-npx @claude-flow/cli@latest init --wizard
-npx @claude-flow/cli@latest agent spawn -t coder --name my-coder
-npx @claude-flow/cli@latest swarm init --v3-mode
-npx @claude-flow/cli@latest memory search --query "authentication patterns"
-npx @claude-flow/cli@latest doctor --fix
-```
-
-## Available Agents (60+ Types)
-
-### Core Development
-`coder`, `reviewer`, `tester`, `planner`, `researcher`
+| Module | Description | Status |
+|--------|-------------|--------|
+| [ruvector-node](./crates/ruvector-node/CLAUDE.md) | Node.js bindings (NAPI-RS) | ✅ Documented |
+| [ruvector-wasm](./crates/ruvector-wasm/CLAUDE.md) | WebAssembly bindings (58KB) | ✅ Documented |
+| [ruvector-graph-node](./crates/ruvector-graph-node/CLAUDE.md) | Graph Node.js bindings | ✅ Documented |
+| [ruvector-graph-wasm](./crates/ruvector-graph-wasm/CLAUDE.md) | Graph WASM bindings | ✅ Documented |
+| [ruvector-gnn-node](./crates/ruvector-gnn-node/CLAUDE.md) | GNN Node.js bindings | ✅ Documented |
+| [ruvector-gnn-wasm](./crates/ruvector-gnn-wasm/CLAUDE.md) | GNN WASM bindings | ✅ Documented |
+| [ruvector-attention-node](./crates/ruvector-attention-node/CLAUDE.md) | Attention Node.js bindings | ✅ Documented |
+| [ruvector-attention-wasm](./crates/ruvector-attention-wasm/CLAUDE.md) | Attention WASM bindings | ✅ Documented |
+| [ruvector-attention-unified-wasm](./crates/ruvector-attention-unified-wasm/CLAUDE.md) | Unified attention WASM | ✅ Documented |
+| [ruvector-mincut-wasm](./crates/ruvector-mincut-wasm/CLAUDE.md) | Min-cut WASM bindings | ✅ Documented |
+| [ruvector-mincut-node](./crates/ruvector-mincut-node/CLAUDE.md) | Min-cut Node.js bindings | ✅ Documented |
+| [ruvector-mincut-gated-transformer](./crates/ruvector-mincut-gated-transformer/CLAUDE.md) | Gated transformer | ✅ Documented |
+| [ruvector-mincut-gated-transformer-wasm](./crates/ruvector-mincut-gated-transformer-wasm/CLAUDE.md) | Gated transformer WASM | ✅ Documented |
+| [ruvector-router-wasm](./crates/ruvector-router-wasm/CLAUDE.md) | Router WASM bindings | ✅ Documented |
 
 ### Specialized
-`security-architect`, `security-auditor`, `memory-specialist`, `performance-engineer`
 
-### Swarm Coordination
-`hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`
+| Module | Description | Status |
+|--------|-------------|--------|
+| [rvf](./crates/rvf/CLAUDE.md) | RuVector Format (25 segment types) | ✅ Documented |
+| [ruvector-robotics](./crates/ruvector-robotics/CLAUDE.md) | Cognitive robotics platform | ✅ Documented |
+| [neural-trader-core](./crates/neural-trader-core/CLAUDE.md) | Algorithmic trading core | ✅ Documented |
+| [prime-radiant](./crates/prime-radiant/CLAUDE.md) | Universal coherence engine | ✅ Documented |
+| [ruqu-core](./crates/ruqu-core/CLAUDE.md) | Quantum circuit simulator | ✅ Documented |
+| [ruqu-algorithms](./crates/ruqu-algorithms/CLAUDE.md) | Quantum algorithms (VQE, Grover) | ✅ Documented |
+| [ruvllm](./crates/ruvllm/CLAUDE.md) | Local LLM inference (Metal/CUDA/WebGPU) | ✅ Documented |
+| [mcp-brain-server](./crates/mcp-brain-server/CLAUDE.md) | π.ruv.io brain service (axum server) | ✅ Documented |
 
-### GitHub & Repository
-`pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`
+## Quick Start
 
-### SPARC Methodology
-`sparc-coord`, `sparc-coder`, `specification`, `pseudocode`, `architecture`
-
-## Memory Commands Reference
-
-```bash
-# Store (REQUIRED: --key, --value; OPTIONAL: --namespace, --ttl, --tags)
-npx @claude-flow/cli@latest memory store --key "pattern-auth" --value "JWT with refresh" --namespace patterns
-
-# Search (REQUIRED: --query; OPTIONAL: --namespace, --limit, --threshold)
-npx @claude-flow/cli@latest memory search --query "authentication patterns"
-
-# List (OPTIONAL: --namespace, --limit)
-npx @claude-flow/cli@latest memory list --namespace patterns --limit 10
-
-# Retrieve (REQUIRED: --key; OPTIONAL: --namespace)
-npx @claude-flow/cli@latest memory retrieve --key "pattern-auth" --namespace patterns
-```
-
-## Quick Setup
+### Installation
 
 ```bash
-claude mcp add claude-flow -- npx -y @claude-flow/cli@latest
-npx @claude-flow/cli@latest daemon start
-npx @claude-flow/cli@latest doctor --fix
+# Clone repository
+git clone https://github.com/ruvnet/ruvector.git
+cd ruvector
+
+# Build project
+cargo build --release
+
+# Run tests
+cargo test --workspace
 ```
 
-## Claude Code vs CLI Tools
+### Node.js Integration
 
-- Claude Code's Task tool handles ALL execution: agents, file ops, code generation, git
-- CLI tools handle coordination via Bash: swarm init, memory, hooks, routing
-- NEVER use CLI tools as a substitute for Task tool agents
+```bash
+# Install npm package
+npm install @ruvector/core
+
+# Use in your project
+const { VectorDB } = require('@ruvector/core');
+```
+
+### WASM Integration
+
+```bash
+# Install WASM package
+npm install @ruvector/wasm
+
+# Use in browser
+import { VectorDB } from '@ruvector/wasm';
+```
+
+### Local LLM Inference
+
+```bash
+# Install ruvllm
+cargo add ruvllm --features inference-metal
+
+# Use in code
+use ruvllm::prelude::*;
+let mut backend = CandleBackend::with_device(DeviceType::Metal)?;
+backend.load_gguf("model.gguf", ModelConfig::default())?;
+let response = backend.generate("Hello", GenerateParams::default())?;
+```
+
+## Development
+
+### Build Features
+
+```bash
+# Default build
+cargo build
+
+# With SIMD
+cargo build --features simd
+
+# With all features
+cargo build --all-features
+
+# WASM build
+wasm-pack build crates/ruvector-wasm
+```
+
+### Testing
+
+```bash
+# All tests
+cargo test --workspace
+
+# Specific crate
+cargo test -p ruvector-core
+
+# Benchmarks
+cargo test --workspace --benches
+```
+
+## Key Technologies
+
+- **Languages**: Rust, TypeScript, JavaScript, WebAssembly
+- **Databases**: Redb, PostgreSQL, IndexedDB
+- **AI/ML**: HNSW, GNN, Attention, LoRA, SONA
+- **Platforms**: Node.js (NAPI-RS), WASM, CLI
+- **Algorithms**: Sublinear solvers, Min-cut, Consensus
+- **LLM**: GGUF, Candle, CoreML, Metal, CUDA
+
+## Architecture Principles
+
+1. **Domain-Driven Design** - Bounded contexts for each module
+2. **Zero-Copy** - Minimize data movement
+3. **SIMD-First** - Hardware acceleration where available
+4. **Async-First** - Tokio for concurrent operations
+5. **Platform Agnostic** - Core logic in Rust, bindings for platforms
+
+## Performance Characteristics
+
+- **Vector Search**: O(log n) with HNSW
+- **Graph Operations**: Subpolynomial n^o(1) for min-cut
+- **Solvers**: O(log n) to O(√n) approximations
+- **WASM Size**: 58KB optimized bundle
+- **SIMD**: 10-100x speedup for distance calculations
+- **LLM Inference**: 2800 tok/s prefill, 95 tok/s decode (Qwen2.5-7B Q4K)
+
+## Publishing
+
+### crates.io
+
+```bash
+# Dry run
+cargo publish --dry-run --allow-dirty -p ruvector-core
+
+# Publish
+cargo publish -p ruvector-core
+```
+
+### npm
+
+```bash
+# Login
+npm login
+
+# Publish
+cd npm/packages/ruvector
+npm publish --access public
+```
+
+## Deployment
+
+### Cloud Run (π.ruv.io)
+
+```bash
+gcloud builds submit --config=crates/mcp-brain-server/cloudbuild.yaml .
+gcloud run deploy ruvbrain --image gcr.io/ruv-dev/ruvbrain:latest
+```
+
+## Documentation Coverage
+
+- **Total Crates**: 105
+- **Documented**: 105 (100%)
+- **Achievement**: ✅ **100% COVERAGE ACHIEVED**
+
+### Final Session Modules (2026-03-09)
+
+**High Priority (4 modules):**
+1. ✅ ruvector-raft - Raft consensus implementation
+2. ✅ ruvector-replication - Multi-master replication
+3. ✅ ruvllm - Local LLM inference engine
+4. ✅ ruvector-sparse-inference - PowerInfer sparse activation
+
+**Medium Priority (6 modules):**
+5. ✅ ruvector-attention-node - Attention Node.js bindings
+6. ✅ ruvector-attention-wasm - Attention WASM bindings
+7. ✅ ruvector-attention-unified-wasm - Unified attention WASM
+8. ✅ ruvector-hyperbolic-hnsw - Hyperbolic space HNSW
+9. ✅ mcp-brain-server - π.ruv.io brain service (axum server)
+10. ✅ ruvector-graph-transformer - Graph transformer architecture
+
+**Platform Bindings (5 modules):**
+11. ✅ ruvector-mincut-wasm - Min-cut WASM
+12. ✅ ruvector-mincut-node - Min-cut Node.js
+13. ✅ ruvector-mincut-gated-transformer - Gated transformer
+14. ✅ ruvector-mincut-gated-transformer-wasm - Gated transformer WASM
+15. ✅ ruvector-router-wasm - Router WASM bindings
+
+### Previously Documented (90 modules)
+
+All other modules were documented in previous sessions, covering:
+- Core Engines (5 modules)
+- Graph & Topology (2 modules)
+- AI/ML Layers (7 modules)
+- Platform Bindings (6 modules)
+- Specialized (5 modules)
+- Additional bindings and variants (65+ modules)
 
 ## Support
 
-- Documentation: https://github.com/ruvnet/claude-flow
-- Issues: https://github.com/ruvnet/claude-flow/issues
+- **Documentation**: See individual module CLAUDE.md files
+- **Issues**: https://github.com/ruvnet/ruvector/issues
+- **Discussions**: https://github.com/ruvnet/ruvector/discussions
+
+## Changelog
+
+### 2026-03-09 - FINAL MILESTONE
+
+- **Coverage**: 90% → 100% (105/105 modules)
+- **Final 15 Modules**: Documented all remaining modules
+  - Distributed systems: raft, replication
+  - AI/ML: sparse-inference, ruvllm
+  - Platform bindings: 9 new bindings (attention, mincut, router)
+  - Services: mcp-brain-server
+  - Advanced: graph-transformer, hyperbolic-hnsw
+- **Achievement**: ✅ 100% DOCUMENTATION COVERAGE
+- **Quality**: All modules with breadcrumbs, complete API docs, related links
+
+### Previous Updates
+
+See individual module CLAUDE.md files for detailed changelogs.
+
+---
+
+*This documentation is auto-generated and maintained by the RuVector team. For module-specific details, navigate to the individual module documentation.*
+
+**Documentation Status**: ✅ **COMPLETE** - All 105 modules documented
